@@ -1,16 +1,17 @@
 # GlitchTip — srv-apps (149.71.44.117:2200)
-# PostgreSQL : apps-postgres-1 partagé (réseau shared-db)
+# PostgreSQL : dédié (container glitchtip-postgres-1)
 # S3 : Jotelulu (kode01-kodesaasstorage/glitchtip/)
 # Email : Resend
 # Tunnel : Cloudflare (existant srv-apps)
+# Domaine : monitor.kodesaas.com
 
 x-environment: &default-environment
-  DATABASE_URL: postgres://glitchtip:${DB_PASSWORD}@apps-postgres-1:5432/glitchtip
+  DATABASE_URL: postgres://glitchtip:${DB_PASSWORD}@postgres:5432/glitchtip
   VALKEY_URL: ""  # désactivé pour réduire la RAM — Postgres utilisé comme queue
   SECRET_KEY: ${SECRET_KEY}
   EMAIL_URL: smtp://resend:${RESEND_API_KEY}@smtp.resend.com:587
   DEFAULT_FROM_EMAIL: "GlitchTip KodeSaaS <noreply@kodesaas.com>"
-  GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN}
+  GLITCHTIP_DOMAIN: https://monitor.kodesaas.com
   ENABLE_ADMIN: "True"
   # Cold storage S3 Jotelulu
   GLITCHTIP_ENABLE_DUCKDB: "True"
@@ -25,9 +26,25 @@ x-environment: &default-environment
   GLITCHTIP_ENABLE_LOGS: "False"
   GLITCHTIP_ENABLE_UPTIME: "False"
 
+x-depends_on: &default-depends_on
+  - postgres
+
 services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: glitchtip
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: glitchtip
+    restart: unless-stopped
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - internal
+
   web:
     image: glitchtip/glitchtip:6
+    depends_on: *default-depends_on
     environment:
       <<: *default-environment
       SERVER_ROLE: all_in_one
@@ -35,13 +52,14 @@ services:
     volumes:
       - uploads:/code/uploads
     networks:
-      - shared-db
+      - internal
       - apps
     labels:
       - "com.kodesaas.service=glitchtip"
 
   worker:
     image: glitchtip/glitchtip:6
+    depends_on: *default-depends_on
     command: ./bin/run-celery-with-beat.sh
     environment:
       <<: *default-environment
@@ -49,15 +67,16 @@ services:
     volumes:
       - uploads:/code/uploads
     networks:
-      - shared-db
+      - internal
     labels:
       - "com.kodesaas.service=glitchtip-worker"
 
 volumes:
+  pg-data:
   uploads:
 
 networks:
-  shared-db:
-    external: true
+  internal:
+    driver: bridge
   apps:
     external: true
