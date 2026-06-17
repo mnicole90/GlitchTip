@@ -1,0 +1,63 @@
+# GlitchTip — srv-apps (149.71.44.117:2200)
+# PostgreSQL : apps-postgres-1 partagé (réseau shared-db)
+# S3 : Jotelulu (kode01-kodesaasstorage/glitchtip/)
+# Email : Resend
+# Tunnel : Cloudflare (existant srv-apps)
+
+x-environment: &default-environment
+  DATABASE_URL: postgres://glitchtip:${DB_PASSWORD}@apps-postgres-1:5432/glitchtip
+  VALKEY_URL: ""  # désactivé pour réduire la RAM — Postgres utilisé comme queue
+  SECRET_KEY: ${SECRET_KEY}
+  EMAIL_URL: smtp://resend:${RESEND_API_KEY}@smtp.resend.com:587
+  DEFAULT_FROM_EMAIL: "GlitchTip KodeSaaS <noreply@kodesaas.com>"
+  GLITCHTIP_DOMAIN: ${GLITCHTIP_DOMAIN}
+  ENABLE_ADMIN: "True"
+  # Cold storage S3 Jotelulu
+  GLITCHTIP_ENABLE_DUCKDB: "True"
+  AWS_ACCESS_KEY_ID: 65ERMVD0MY51F8HFF1U7
+  AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+  AWS_STORAGE_BUCKET_NAME: kode01-kodesaasstorage
+  AWS_S3_ENDPOINT_URL: https://s3.jotelulu.com
+  GLITCHTIP_DUCKDB_S3_PATH: glitchtip/duckdb/
+  DEFAULT_FILE_STORAGE: storages.backends.s3boto3.S3Boto3Storage
+  AWS_LOCATION: glitchtip/uploads
+  # RAM réduite
+  GLITCHTIP_ENABLE_LOGS: "False"
+  GLITCHTIP_ENABLE_UPTIME: "False"
+
+services:
+  web:
+    image: glitchtip/glitchtip:6
+    environment:
+      <<: *default-environment
+      SERVER_ROLE: all_in_one
+    restart: unless-stopped
+    volumes:
+      - uploads:/code/uploads
+    networks:
+      - shared-db
+      - apps
+    labels:
+      - "com.kodesaas.service=glitchtip"
+
+  worker:
+    image: glitchtip/glitchtip:6
+    command: ./bin/run-celery-with-beat.sh
+    environment:
+      <<: *default-environment
+    restart: unless-stopped
+    volumes:
+      - uploads:/code/uploads
+    networks:
+      - shared-db
+    labels:
+      - "com.kodesaas.service=glitchtip-worker"
+
+volumes:
+  uploads:
+
+networks:
+  shared-db:
+    external: true
+  apps:
+    external: true
