@@ -13,6 +13,7 @@ x-environment: &default-environment
   DEFAULT_FROM_EMAIL: "GlitchTip KodeSaaS <noreply@kodesaas.com>"
   GLITCHTIP_DOMAIN: https://monitor.kodesaas.com
   ENABLE_ADMIN: "True"
+  REGISTRATION_OPEN: "False"
   # Cold storage S3 Jotelulu
   GLITCHTIP_ENABLE_DUCKDB: "True"
   AWS_ACCESS_KEY_ID: 65ERMVD0MY51F8HFF1U7
