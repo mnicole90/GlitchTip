@@ -9,7 +9,7 @@ x-environment: &default-environment
   DATABASE_URL: postgres://glitchtip:${DB_PASSWORD}@postgres:5432/glitchtip
   VALKEY_URL: ""  # désactivé pour réduire la RAM — Postgres utilisé comme queue
   SECRET_KEY: ${SECRET_KEY}
-  EMAIL_URL: smtp://resend:${RESEND_API_KEY}@smtp.resend.com:587
+  EMAIL_URL: smtp+tls://resend:${RESEND_API_KEY}@smtp.resend.com:587
   DEFAULT_FROM_EMAIL: "GlitchTip KodeSaaS <noreply@kodesaas.com>"
   GLITCHTIP_DOMAIN: https://monitor.kodesaas.com
   ENABLE_ADMIN: "True"
